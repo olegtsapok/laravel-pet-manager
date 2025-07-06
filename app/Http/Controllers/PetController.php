@@ -55,27 +55,10 @@ class PetController extends Controller
 
     public function store(StorePetRequest $request)
     {
-        $photoUrls = array_map('trim', explode(',', $request->input('photoUrls')));
-
-        $data = [
-            'id' => now()->timestamp,
-            'name' => $request->input('name'),
-            'status' => $request->input('status'),
-            'category' => ['id' => 0, 'name' => $request->input('category')],
-            'tags' => collect(explode(',', $request->input('tags')))->map(fn($tag) => ['id' => 0, 'name' => trim($tag)])->all(),
-            'photoUrls' => $photoUrls
-        ];
+        $data = $this->collectPetDataFromRequest($request);
 
         if ($this->petstore->createPet($data)) {
-            if ($request->hasFile('imageFile')) {
-                $file = $request->file('imageFile');
-                $this->petstore->uploadImage(
-                    $data['id'],
-                    $file->getPathname(),
-                    $file->getClientOriginalName(),
-                    $file->getMimeType()
-                );
-            }
+            $this->uploadImageToApi($data['id'], $request);
             return redirect()->route('pets.index')->with('success', 'Pet created.');
         }
 
@@ -91,27 +74,10 @@ class PetController extends Controller
 
     public function update(UpdatePetRequest $request, $id)
     {
-        $photoUrls = array_map('trim', explode(',', $request->input('photoUrls')));
-
-        $data = [
-            'id' => (int) $id,
-            'name' => $request->input('name'),
-            'status' => $request->input('status'),
-            'category' => ['id' => 0, 'name' => $request->input('category')],
-            'tags' => collect(explode(',', $request->input('tags')))->map(fn($tag) => ['id' => 0, 'name' => trim($tag)])->all(),
-            'photoUrls' => $photoUrls
-        ];
+        $data = $this->collectPetDataFromRequest($request);
 
         if ($this->petstore->updatePet($data)) {
-            if ($request->hasFile('imageFile')) {
-                $file = $request->file('imageFile');
-                $this->petstore->uploadImage(
-                    $data['id'],
-                    $file->getPathname(),
-                    $file->getClientOriginalName(),
-                    $file->getMimeType()
-                );
-            }
+            $this->uploadImageToApi($data['id'], $request);
             return redirect()->route('pets.index')->with('success', 'Pet updated.');
         }
 
@@ -125,5 +91,32 @@ class PetController extends Controller
         }
 
         return redirect()->route('pets.index')->with('error', 'Failed to delete pet.');
+    }
+
+    private function uploadImageToApi($petId, $request)
+    {
+        if ($request->hasFile('imageFile')) {
+            $file = $request->file('imageFile');
+            $this->petstore->uploadImage(
+                $petId,
+                $file->getPathname(),
+                $file->getClientOriginalName(),
+                $file->getMimeType()
+            );
+        }
+    }
+
+    private function collectPetDataFromRequest($request, $id = null)
+    {
+        $photoUrls = array_map('trim', explode(',', $request->input('photoUrls')));
+
+        return [
+            'id' => $id ?? now()->timestamp,
+            'name' => $request->input('name'),
+            'status' => $request->input('status'),
+            'category' => ['id' => 0, 'name' => $request->input('category')],
+            'tags' => collect(explode(',', $request->input('tags')))->map(fn($tag) => ['id' => 0, 'name' => trim($tag)])->all(),
+            'photoUrls' => $photoUrls
+        ];
     }
 }
