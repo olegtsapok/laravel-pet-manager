@@ -6,16 +6,15 @@ use Illuminate\Support\ServiceProvider;
 use GuzzleHttp\Client;
 use App\Services\PetstoreService;
 
-class AppServiceProvider extends ServiceProvider
+class PetstoreServiceProvider extends ServiceProvider
 {
     public function register()
     {
-        // Bind PetstoreService with a configured Guzzle Client
         $this->app->singleton(PetstoreService::class, function ($app) {
             $config = config('petstore');
 
             $client = new Client([
-                'base_uri' => $config['base_uri'],
+                'base_uri' => rtrim($config['base_uri'], '/') . '/',
                 'headers' => [
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
@@ -25,10 +24,5 @@ class AppServiceProvider extends ServiceProvider
 
             return new PetstoreService($client);
         });
-    }
-
-    public function boot()
-    {
-        //
     }
 }
